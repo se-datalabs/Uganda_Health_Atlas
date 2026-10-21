@@ -71,31 +71,19 @@
       z-index: 99999 !important;
     }
 
-    .marker-cluster-small { background-color: rgba(252, 220, 4, 0.45) !important; }
-    .marker-cluster-small div { background-color: #FCDC04 !important; color: #111111 !important; font-weight: 800; }
-    .marker-cluster-medium { background-color: rgba(217, 0, 0, 0.45) !important; }
-    .marker-cluster-medium div { background-color: #D90000 !important; color: #ffffff !important; font-weight: 800; }
-    .marker-cluster-large { background-color: rgba(17, 17, 17, 0.5) !important; }
-    .marker-cluster-large div { background-color: #111111 !important; color: #FCDC04 !important; font-weight: 800; }
-
-    .tier-tab-active {
-      border-color: #D90000 !important;
-      background-color: #FFFBEB !important;
-      box-shadow: 0 0 0 2px #FCDC04 !important;
-    }
     .own-tab-active {
-      box-shadow: 0 0 0 2px #FCDC04, 0 3px 8px rgba(0,0,0,0.25) !important;
+      box-shadow: 0 0 0 2px #0284C7, 0 3px 8px rgba(0,0,0,0.25) !important;
       transform: translateY(-1px);
     }
     .scrollbar-thin::-webkit-scrollbar { width: 4px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
 
-    /* Keep Leaflet zoom controls above the mobile bottom bar */
+    /* Keep Leaflet zoom controls above the bottom status strip */
+    .leaflet-bottom.leaflet-right {
+      margin-bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+      margin-right: 10px !important;
+    }
     @media (max-width: 767px) {
-      .leaflet-bottom.leaflet-right {
-        margin-bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
-        margin-right: 4px !important;
-      }
       .leaflet-control-attribution {
         font-size: 8px !important;
         max-width: 65vw;
@@ -118,7 +106,7 @@
     <!-- =====================================================================
          LEFT NON-OVERLAPPING FLEX DOCK (Header + Hierarchy & Sector Legends)
          ===================================================================== -->
-    <div id="leftControlDock" class="fixed top-2 left-2 right-2 md:top-3.5 md:left-4 md:right-auto md:bottom-3.5 md:w-[415px] z-30 flex flex-col gap-2 pointer-events-none max-h-[calc(100dvh-70px)] md:max-h-[calc(100dvh-28px)]">
+    <div id="leftControlDock" class="fixed top-2 left-2 right-2 md:top-3.5 md:left-4 md:right-auto md:bottom-16 md:w-[390px] z-30 flex flex-col gap-2 pointer-events-none max-h-[calc(100dvh-70px)] md:max-h-[calc(100dvh-78px)]">
 
       <!-- 1. TOP CONTROL HEADER (flex-shrink-0) -->
       <header id="topHeaderPanel" class="pointer-events-auto flex-shrink-0 glass-panel rounded-2xl p-2.5 md:p-3 flex flex-col gap-1.5 md:gap-2 transition-all">
@@ -133,11 +121,8 @@
               <i class="fa-solid fa-user-doctor text-white absolute text-xs drop-shadow"></i>
             </div>
             <div class="min-w-0">
-              <div class="flex items-center space-x-1.5">
-                <h1 class="text-xs sm:text-sm md:text-base font-extrabold tracking-tight text-slate-900 leading-none truncate">Uganda Health Atlas</h1>
-                <span class="bg-red-100 text-red-800 text-[8.5px] font-bold px-1.5 py-0.5 rounded-full border border-red-200 flex-shrink-0">Census '24</span>
-              </div>
-              <p class="text-[9.5px] md:text-[10px] text-slate-500 font-medium mt-0.5 truncate">7,217 Master Facilities • Clinical Staff Norms</p>
+              <h1 class="text-xs sm:text-sm md:text-base font-extrabold tracking-tight text-slate-900 leading-none truncate">Uganda Health Atlas</h1>
+              <p class="text-[9.5px] md:text-[10px] text-slate-500 font-medium mt-0.5 truncate">7,217 Master Facilities • Clinical Staff Guide</p>
             </div>
           </div>
 
@@ -147,10 +132,6 @@
             </button>
             <button id="btnFitBounds" type="button" title="Zoom to fit currently visible facilities" class="w-7 h-7 md:w-8 md:h-8 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-700 transition">
               <i class="fa-solid fa-expand text-xs"></i>
-            </button>
-            <button id="btnOpenStaffingDesktop" type="button" title="View MoH Staffing Cadres &amp; Census Ratios" class="hidden md:inline-flex items-center space-x-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-900 text-yellow-400 border border-yellow-400/40 hover:bg-black transition">
-              <i class="fa-solid fa-user-doctor text-[10px]"></i>
-              <span>Norms</span>
             </button>
             <div class="flex flex-col items-end">
               <span id="activeCountBadge" class="bg-slate-900 text-yellow-400 text-[11px] md:text-xs font-mono font-extrabold px-2 py-0.5 rounded-full border border-yellow-400/40">7,217</span>
@@ -194,19 +175,6 @@
             </select>
           </div>
         </div>
-
-        <!-- HEALTHCARE WORKFORCE & DOCTOR RATIO BANNER -->
-        <div id="workforceBanner" class="bg-gradient-to-r from-slate-900 to-neutral-900 text-white rounded-xl px-2.5 py-1.5 text-[9.5px] md:text-[10.5px] flex items-center justify-between gap-2 border-t border-yellow-400/30 transition-all">
-          <div class="flex items-center space-x-1 truncate min-w-0">
-            <i class="fa-solid fa-users text-yellow-400 text-[10px] flex-shrink-0"></i>
-            <span class="truncate"><strong id="censusPopTitle">National</strong>: <span id="censusPopValue" class="text-yellow-400 font-bold">45.91M</span></span>
-          </div>
-          <div class="flex items-center space-x-1.5 flex-shrink-0">
-            <span><i class="fa-solid fa-stethoscope text-emerald-400 text-[9.5px]"></i> <span id="doctorLabelText">Est. Doctors:</span> <strong id="doctorCountValue" class="text-emerald-300">~1,850</strong></span>
-            <span class="text-slate-500">|</span>
-            <span><span id="coverageLabelText">Coverage:</span> <strong id="workforceRatioValue" class="text-yellow-300">1 Doc : 24.8k</strong></span>
-          </div>
-        </div>
       </header>
 
       <!-- 2. UNIFIED HIERARCHY & MANAGING SECTOR LEGEND PANEL (flex-1 min-h-0)
@@ -228,8 +196,12 @@
           </div>
         </div>
 
-        <div class="flex-shrink-0 px-3 pt-1.5 pb-1 bg-slate-50/80 border-b border-slate-100">
-          <p class="text-[10px] text-slate-500 font-medium">Tap any level to <strong class="text-slate-800">isolate &amp; auto-zoom</strong> on the map:</p>
+        <div class="flex-shrink-0 px-3 pt-1.5 pb-1 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+          <p class="text-[10px] text-slate-500 font-medium">Tap any level to <strong class="text-slate-800">isolate &amp; auto-zoom</strong>:</p>
+          <button id="btnOpenStaffingLegend" type="button" class="text-[9.5px] font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-md flex items-center gap-1 transition shadow-xs" title="View MoH Staffing Guidelines &amp; Doctor Cadres">
+            <i class="fa-solid fa-user-doctor text-emerald-600 text-[9px]"></i>
+            <span>Staffing Guide</span>
+          </button>
         </div>
 
         <!-- Scrollable 9-Level Hierarchy List (flex-1 min-h-0 prevents overlapping the sector legend below) -->
@@ -251,14 +223,14 @@
          RIGHT NON-OVERLAPPING DOCK (Staffing Norms Modal & Facility Inspector)
          ===================================================================== -->
 
-    <!-- CENSUS & STAFFING NORMS MODAL -->
-    <div id="staffingNormsModal" class="hidden fixed bottom-14 inset-x-2.5 md:bottom-auto md:inset-x-auto md:right-4 md:top-3.5 z-40 w-auto md:w-[400px] glass-panel rounded-2xl shadow-2xl overflow-hidden border border-slate-200 max-h-[70dvh] md:max-h-[calc(100dvh-32px)] flex flex-col">
+    <!-- CENSUS & STAFFING GUIDELINES MODAL -->
+    <div id="staffingNormsModal" class="hidden fixed bottom-16 inset-x-2.5 md:bottom-auto md:inset-x-auto md:right-4 md:top-3.5 z-40 w-auto md:w-[400px] glass-panel rounded-2xl shadow-2xl overflow-hidden border border-slate-200 max-h-[70dvh] md:max-h-[calc(100dvh-32px)] flex flex-col">
       <div class="relative bg-gradient-to-r from-slate-900 to-black p-3 text-white flex-shrink-0">
         <div class="uganda-ribbon absolute top-0 left-0 right-0"></div>
         <div class="flex items-center justify-between mt-1">
           <div class="flex items-center space-x-2">
             <i class="fa-solid fa-hospital-user text-yellow-400 text-sm"></i>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-yellow-400">MoH Staffing Cadres &amp; Census Ratios</h2>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-yellow-400">MoH Staffing Guidelines &amp; Doctor Ratios</h2>
           </div>
           <button id="btnCloseStaffingModal" type="button" class="text-slate-400 hover:text-white p-1">
             <i class="fa-solid fa-xmark text-sm"></i>
@@ -284,7 +256,7 @@
         </div>
 
         <div class="bg-white p-2.5 rounded-xl border border-slate-200 space-y-2 shadow-sm text-[11px]">
-          <h4 class="font-bold text-slate-900 border-b pb-1">Statutory Medical Staffing by Tier</h4>
+          <h4 class="font-bold text-slate-900 border-b pb-1">Ministry of Health Staff Guidelines by Tier</h4>
           
           <div class="flex justify-between items-start">
             <div>
@@ -411,16 +383,45 @@
       </div>
     </div>
 
-    <!-- MOBILE BOTTOM TOGGLE DOCK (Safe-area aware) -->
-    <div id="mobileBottomDock" class="md:hidden fixed bottom-2.5 inset-x-2.5 z-30 flex items-center justify-between gap-2 pointer-events-none" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
-      <button id="btnOpenStaffingMobile" type="button" class="pointer-events-auto flex-1 py-2.5 px-3 bg-slate-900/95 backdrop-blur-md text-yellow-400 rounded-xl text-xs font-bold border border-yellow-400/40 shadow-xl flex items-center justify-center space-x-1.5 active:scale-95 transition">
-        <i class="fa-solid fa-user-doctor text-xs"></i>
-        <span>Staffing Norms</span>
-      </button>
-      <button id="btnToggleLegendMobile" type="button" class="pointer-events-auto flex-1 py-2.5 px-3 bg-white/95 backdrop-blur-md text-slate-900 rounded-xl text-xs font-extrabold border border-slate-300 shadow-xl flex items-center justify-center space-x-1.5 active:scale-95 transition">
-        <i class="fa-solid fa-layer-group text-red-600 text-xs"></i>
-        <span id="mobileLegendBtnLabel" class="truncate">Hierarchy &amp; Sectors</span>
-      </button>
+    <!-- =====================================================================
+         BOTTOM WORKFORCE & DOCTOR METRICS STATUS STRIP (Desktop & Mobile)
+         ===================================================================== -->
+    <div id="bottomWorkforceStrip" class="fixed bottom-2.5 inset-x-2 md:inset-x-auto md:bottom-3 md:left-1/2 md:-translate-x-1/2 z-30 pointer-events-auto flex items-center justify-center max-w-[calc(100vw-16px)]" style="padding-bottom: env(safe-area-inset-bottom, 0px);">
+      <div class="glass-panel bg-slate-900/95 text-white rounded-2xl px-2 py-1.5 md:px-3 md:py-2 flex items-center gap-1.5 md:gap-2 shadow-2xl border border-yellow-400/40 backdrop-blur-md max-w-full overflow-x-auto scrollbar-none">
+        
+        <!-- Button 1: Population Button -->
+        <button id="btnBottomPop" type="button" class="group/btn flex items-center space-x-1.5 px-2 md:px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 hover:border-yellow-400/50 transition-all text-xs flex-shrink-0 cursor-pointer active:scale-95" title="Uganda Census 2024 Population (Click to view Staffing Guidelines)">
+          <i class="fa-solid fa-users text-yellow-400 text-xs flex-shrink-0"></i>
+          <span class="text-slate-300 text-[10px] md:text-xs whitespace-nowrap"><strong id="censusPopTitle" class="text-white">National</strong>: <span id="censusPopValue" class="text-yellow-400 font-bold font-mono">45.91M</span></span>
+        </button>
+
+        <!-- Button 2: Est. Doctors Button -->
+        <button id="btnBottomDocs" type="button" class="group/btn flex items-center space-x-1.5 px-2 md:px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 hover:border-emerald-400/50 transition-all text-xs flex-shrink-0 cursor-pointer active:scale-95" title="Estimated Clinical Doctors in Selection (Click to view Staffing Guidelines)">
+          <i class="fa-solid fa-stethoscope text-emerald-400 text-xs flex-shrink-0"></i>
+          <span class="text-slate-300 text-[10px] md:text-xs whitespace-nowrap"><span class="hidden sm:inline">Est. Doctors: </span><strong id="doctorCountValue" class="text-emerald-300 font-bold font-mono">~1,850</strong></span>
+        </button>
+
+        <!-- Separator -->
+        <span class="text-slate-600 font-bold select-none text-xs flex-shrink-0">|</span>
+
+        <!-- Button 3: Coverage Ratio Button -->
+        <button id="btnBottomCoverage" type="button" class="group/btn flex items-center space-x-1.5 px-2 md:px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 hover:border-amber-400/50 transition-all text-xs flex-shrink-0 cursor-pointer active:scale-95" title="Doctor-to-Population Coverage Ratio (Click to view Staffing Guidelines)">
+          <i class="fa-solid fa-chart-pie text-amber-400 text-xs flex-shrink-0"></i>
+          <span class="text-slate-300 text-[10px] md:text-xs whitespace-nowrap"><span class="hidden sm:inline">Coverage: </span><strong id="workforceRatioValue" class="text-yellow-300 font-bold font-mono">1 Doc : 24.8k</strong></span>
+        </button>
+
+        <!-- Button 4: Staffing Guidelines Button (Simpler replacement for 'Norms') -->
+        <button id="btnOpenStaffingBottom" type="button" class="group/btn flex items-center space-x-1.5 px-2.5 md:px-3 py-1.5 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-slate-950 font-extrabold text-[10.5px] md:text-xs shadow-md transition-all flex-shrink-0 cursor-pointer active:scale-95" title="Click to view Ministry of Health Staffing Guidelines &amp; Doctor Ratios">
+          <i class="fa-solid fa-clipboard-user text-xs"></i>
+          <span class="whitespace-nowrap">Staffing Guide</span>
+        </button>
+
+        <!-- Mobile-only Filter Toggle Button -->
+        <button id="btnToggleLegendMobile" type="button" class="md:hidden flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-white text-slate-900 font-bold text-[10.5px] shadow border border-slate-300 active:scale-95 flex-shrink-0" title="Open Hierarchy &amp; Managing Sectors Filter">
+          <i class="fa-solid fa-layer-group text-red-600 text-xs"></i>
+          <span id="mobileLegendBtnLabel" class="truncate max-w-[70px]">Filters</span>
+        </button>
+      </div>
     </div>
 
   </div>
@@ -664,37 +665,37 @@
       attribution: '&copy; Google Maps &bull; Uganda Census 2024 &bull; MoH'
     }).addTo(map);
 
-    // 3. Architectural SVG Generator
+    // 3. Architectural SVG Generator (Each tier has its own distinct Legend Icon color, independent of the static map theme colors)
     function getHierarchySvgString(tierName, size) {
       if (tierName === 'National Referral Hospitals') {
         return `<svg viewBox="0 0 44 44" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="22" cy="22" r="20" fill="#D90000" stroke="#FCDC04" stroke-width="2.8" filter="drop-shadow(0 3px 5px rgba(0,0,0,0.45))"/>
-          <rect x="11" y="15" width="22" height="19" rx="2" fill="#FFFFFF"/>
-          <path d="M8 16 L22 4 L36 16 Z" fill="#111111" stroke="#FCDC04" stroke-width="1.8"/>
-          <rect x="19.5" y="19" width="5" height="12" fill="#D90000"/>
-          <rect x="16" y="22.5" width="12" height="5" fill="#D90000"/>
-          <polygon points="22,6 23.5,10.5 28,10.5 24.5,13 26,17.5 22,14.5 18,17.5 19.5,13 16,10.5 20.5,10.5" fill="#FCDC04"/>
+          <circle cx="22" cy="22" r="20" fill="#BE123C" stroke="#FFFFFF" stroke-width="2.5" filter="drop-shadow(0 3px 5px rgba(0,0,0,0.35))"/>
+          <rect x="11" y="16" width="22" height="18" rx="2" fill="#FFFFFF"/>
+          <path d="M8 17 L22 5 L36 17 Z" fill="#FB7185" stroke="#FFFFFF" stroke-width="1.5"/>
+          <rect x="19.5" y="19.5" width="5" height="11.5" fill="#BE123C"/>
+          <rect x="16" y="23" width="12" height="5" fill="#BE123C"/>
+          <polygon points="22,7 23.2,10.5 27,10.5 24,12.5 25.2,16 22,13.8 18.8,16 20,12.5 17,10.5 20.8,10.5" fill="#FFFFFF"/>
         </svg>`;
       } else if (tierName === 'Regional Referral Hospitals') {
         return `<svg viewBox="0 0 38 38" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="19" cy="19" r="17.5" fill="#111111" stroke="#FCDC04" stroke-width="2.4" filter="drop-shadow(0 3px 5px rgba(0,0,0,0.4))"/>
+          <circle cx="19" cy="19" r="17.5" fill="#4338CA" stroke="#FFFFFF" stroke-width="2.2" filter="drop-shadow(0 3px 5px rgba(0,0,0,0.35))"/>
           <rect x="10" y="14" width="18" height="16" rx="1.5" fill="#FFFFFF"/>
-          <path d="M7 15 L19 5.5 L31 15 Z" fill="#D90000"/>
-          <path d="M19 17 V26 M14.5 21.5 H23.5" stroke="#111111" stroke-width="3" stroke-linecap="round"/>
+          <path d="M7 15 L19 5.5 L31 15 Z" fill="#818CF8"/>
+          <path d="M19 17 V26 M14.5 21.5 H23.5" stroke="#4338CA" stroke-width="3" stroke-linecap="round"/>
         </svg>`;
       } else if (tierName === 'General Hospitals') {
         return `<svg viewBox="0 0 34 34" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="17" cy="17" r="15.5" fill="#D90000" stroke="#FFFFFF" stroke-width="2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.35))"/>
+          <circle cx="17" cy="17" r="15.5" fill="#EA580C" stroke="#FFFFFF" stroke-width="2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
           <rect x="9" y="13" width="16" height="14" rx="1" fill="#FFFFFF"/>
-          <path d="M7 14 L17 5 L27 14 Z" fill="#FCDC04" stroke="#111111" stroke-width="1.2"/>
-          <path d="M17 16 V23.5 M13.5 19.8 H20.5" stroke="#D90000" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M7 14 L17 5 L27 14 Z" fill="#FDBA74" stroke="#EA580C" stroke-width="1"/>
+          <path d="M17 16 V23.5 M13.5 19.8 H20.5" stroke="#EA580C" stroke-width="2.4" stroke-linecap="round"/>
         </svg>`;
       } else if (tierName === 'Health Centre IV') {
         return `<svg viewBox="0 0 30 30" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="15" cy="15" r="14" fill="#FCDC04" stroke="#111111" stroke-width="2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.25))"/>
+          <circle cx="15" cy="15" r="14" fill="#D97706" stroke="#FFFFFF" stroke-width="1.8" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.25))"/>
           <rect x="8" y="12" width="14" height="12" rx="1" fill="#FFFFFF"/>
-          <path d="M6 13 L15 5.5 L24 13 Z" fill="#111111"/>
-          <path d="M15 14.5 V21.5 M11.5 18 H18.5" stroke="#D90000" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M6 13 L15 5.5 L24 13 Z" fill="#FCD34D"/>
+          <path d="M15 14.5 V21.5 M11.5 18 H18.5" stroke="#D97706" stroke-width="2.2" stroke-linecap="round"/>
         </svg>`;
       } else if (tierName === 'Health Centre III') {
         return `<svg viewBox="0 0 28 28" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
@@ -712,9 +713,9 @@
         </svg>`;
       } else if (tierName === 'Specialised Facilities') {
         return `<svg viewBox="0 0 30 30" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="15" cy="15" r="14" fill="#991B1B" stroke="#FCDC04" stroke-width="2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
+          <circle cx="15" cy="15" r="14" fill="#A21CAF" stroke="#FFFFFF" stroke-width="2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
           <path d="M15 6 C12 12, 8 16, 8 20 A7 7 0 0 0 22 20 C22 16, 18 12, 15 6 Z" fill="#FFFFFF"/>
-          <path d="M15 14 V20 M12 17 H18" stroke="#991B1B" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M15 14 V20 M12 17 H18" stroke="#A21CAF" stroke-width="2.2" stroke-linecap="round"/>
         </svg>`;
       } else if (tierName === 'Medical Clinics') {
         return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
@@ -760,21 +761,22 @@
       return icon;
     }
 
-    // Tier & Sector Color Palettes (matches each Legend Icon's exact color)
+    // Tier & Sector Color Palettes (Each facility tier has its own distinct Legend Icon color;
+    // static map theme colors are strictly limited to the page header/ribbon chrome)
     const TIER_COLORS = Object.freeze({
-      'National Referral Hospitals': { bg: '#D90000', halo: 'rgba(217, 0, 0, 0.38)', border: '#FCDC04', text: '#FFFFFF', lightBg: '#FEF2F2' },
-      'Regional Referral Hospitals': { bg: '#111111', halo: 'rgba(17, 17, 17, 0.42)', border: '#FCDC04', text: '#FCDC04', lightBg: '#F8FAFC' },
-      'General Hospitals':           { bg: '#D90000', halo: 'rgba(217, 0, 0, 0.36)', border: '#FFFFFF', text: '#FFFFFF', lightBg: '#FEF2F2' },
-      'Health Centre IV':            { bg: '#FCDC04', halo: 'rgba(252, 220, 4, 0.45)', border: '#111111', text: '#111111', lightBg: '#FEFCE8' },
-      'Health Centre III':           { bg: '#047857', halo: 'rgba(4, 120, 87, 0.38)', border: '#10B981', text: '#FFFFFF', lightBg: '#ECFDF5' },
-      'Health Centre II':            { bg: '#0284C7', halo: 'rgba(2, 132, 199, 0.38)', border: '#38BDF8', text: '#FFFFFF', lightBg: '#F0F9FF' },
-      'Specialised Facilities':      { bg: '#991B1B', halo: 'rgba(153, 27, 27, 0.40)', border: '#FCDC04', text: '#FFFFFF', lightBg: '#FEF2F2' },
-      'Medical Clinics':             { bg: '#7C3AED', halo: 'rgba(124, 58, 237, 0.38)', border: '#C4B5FD', text: '#FFFFFF', lightBg: '#F5F3FF' },
-      'Licensed Drug Shops':         { bg: '#0D9488', halo: 'rgba(13, 148, 136, 0.38)', border: '#5EEAD4', text: '#FFFFFF', lightBg: '#F0FDFA' }
+      'National Referral Hospitals': { bg: '#BE123C', halo: 'rgba(190, 18, 60, 0.38)', border: '#FECDD3', text: '#FFFFFF', lightBg: '#FFF1F2' },
+      'Regional Referral Hospitals': { bg: '#4338CA', halo: 'rgba(67, 56, 202, 0.38)', border: '#C7D2FE', text: '#FFFFFF', lightBg: '#EEF2FF' },
+      'General Hospitals':           { bg: '#EA580C', halo: 'rgba(234, 88, 12, 0.38)', border: '#FED7AA', text: '#FFFFFF', lightBg: '#FFF7ED' },
+      'Health Centre IV':            { bg: '#D97706', halo: 'rgba(217, 119, 6, 0.40)', border: '#FDE68A', text: '#FFFFFF', lightBg: '#FFFBEB' },
+      'Health Centre III':           { bg: '#047857', halo: 'rgba(4, 120, 87, 0.38)', border: '#A7F3D0', text: '#FFFFFF', lightBg: '#ECFDF5' },
+      'Health Centre II':            { bg: '#0284C7', halo: 'rgba(2, 132, 199, 0.38)', border: '#BAE6FD', text: '#FFFFFF', lightBg: '#F0F9FF' },
+      'Specialised Facilities':      { bg: '#A21CAF', halo: 'rgba(162, 28, 175, 0.38)', border: '#F5D0FE', text: '#FFFFFF', lightBg: '#FDF4FF' },
+      'Medical Clinics':             { bg: '#7C3AED', halo: 'rgba(124, 58, 237, 0.38)', border: '#DDD6FE', text: '#FFFFFF', lightBg: '#F5F3FF' },
+      'Licensed Drug Shops':         { bg: '#0D9488', halo: 'rgba(13, 148, 136, 0.38)', border: '#99F6E4', text: '#FFFFFF', lightBg: '#F0FDFA' }
     });
 
     const OWNERSHIP_COLORS = Object.freeze({
-      'GOV':  { bg: '#111111', halo: 'rgba(17, 17, 17, 0.40)', border: '#FCDC04', text: '#FCDC04' },
+      'GOV':  { bg: '#1E293B', halo: 'rgba(30, 41, 59, 0.38)', border: '#94A3B8', text: '#FFFFFF' },
       'PNFP': { bg: '#047857', halo: 'rgba(4, 120, 87, 0.38)', border: '#6EE7B7', text: '#FFFFFF' },
       'PFP':  { bg: '#B91C1C', halo: 'rgba(185, 28, 28, 0.38)', border: '#FCA5A5', text: '#FFFFFF' }
     });
@@ -788,10 +790,12 @@
     let lastVisibleDoctorsSum = 1850;
     let lastVisibleBounds = null;
 
-    // 4. Cluster Group with Dynamic Legend-Matched Numbered Cluster Icons
+    // 4. Cluster Group:
+    // - When a specific tab is clicked: all clusters take that exact Legend Icon color
+    // - When "Show All" is active: clusters use the Uganda national color theme (Yellow < 10, Red 10-99, Black 100+)
     const markerCluster = L.markerClusterGroup({
       chunkedLoading: true,
-      maxClusterRadius: 38,
+      maxClusterRadius: 36,
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       iconCreateFunction: function(cluster) {
@@ -799,22 +803,39 @@
         const dim = count < 10 ? 34 : (count < 100 ? 40 : 46);
         const innerDim = dim - 8;
 
-        // Determine cluster color palette:
-        // 1. If a Hierarchy Level tab is selected, use that level's exact legend icon color
-        // 2. Else if a Managing Sector tab is selected, use that sector's color
-        // 3. Else use the default Uganda flag theme colors by cluster size
         let palette = null;
         if (isolatedTier && TIER_COLORS[isolatedTier]) {
+          // Tab active: use that tier's exact Legend Icon color
           palette = TIER_COLORS[isolatedTier];
         } else if (isolatedOwnership && OWNERSHIP_COLORS[isolatedOwnership]) {
+          // Sector active: use that sector's color
           palette = OWNERSHIP_COLORS[isolatedOwnership];
         } else {
+          // When "Show All" is active, use the Uganda flag national color theme:
+          // Small clusters (< 10): Vibrant Gold/Yellow
+          // Medium clusters (10 - 99): National Red
+          // Large clusters (100+): Deep Black with Gold border & text
           if (count < 10) {
-            palette = { bg: '#FCDC04', halo: 'rgba(252, 220, 4, 0.45)', border: '#111111', text: '#111111' };
+            palette = {
+              bg: '#FCDC04',
+              halo: 'rgba(252, 220, 4, 0.45)',
+              border: '#111111',
+              text: '#111111'
+            };
           } else if (count < 100) {
-            palette = { bg: '#D90000', halo: 'rgba(217, 0, 0, 0.45)', border: '#FFFFFF', text: '#FFFFFF' };
+            palette = {
+              bg: '#D90000',
+              halo: 'rgba(217, 0, 0, 0.42)',
+              border: '#FFFFFF',
+              text: '#FFFFFF'
+            };
           } else {
-            palette = { bg: '#111111', halo: 'rgba(17, 17, 17, 0.50)', border: '#FCDC04', text: '#FCDC04' };
+            palette = {
+              bg: '#111111',
+              halo: 'rgba(17, 17, 17, 0.50)',
+              border: '#FCDC04',
+              text: '#FCDC04'
+            };
           }
         }
 
@@ -827,7 +848,7 @@
             display:flex;
             align-items:center;
             justify-content:center;
-            box-shadow:0 3px 8px rgba(0,0,0,0.3);
+            box-shadow:0 3px 8px rgba(0,0,0,0.28);
           ">
             <div style="
               width:${innerDim}px;
@@ -841,7 +862,7 @@
               justify-content:center;
               font-family:'Outfit',system-ui,sans-serif;
               font-weight:800;
-              font-size:${count >= 1000 ? '10px' : '11.5px'};
+              font-size:${count >= 1000 ? '10px' : '11px'};
               line-height:1;
               letter-spacing:-0.02em;
             ">${count.toLocaleString()}</div>
@@ -870,7 +891,7 @@
     ];
 
     const OWNERSHIP_CONFIG = [
-      { key: 'GOV', label: 'Government', count: 3540, bg: 'bg-black text-yellow-400 border-yellow-400' },
+      { key: 'GOV', label: 'Government', count: 3540, bg: 'bg-slate-800 text-white border-slate-600' },
       { key: 'PNFP', label: 'Not-For-Profit', count: 1047, bg: 'bg-emerald-700 text-white border-emerald-800' },
       { key: 'PFP', label: 'For-Profit', count: 2630, bg: 'bg-red-700 text-white border-red-800' }
     ];
@@ -911,7 +932,7 @@
 
       return {
         paddingTopLeft: [leftPad, 34],
-        paddingBottomRight: [rightPad, 34],
+        paddingBottomRight: [rightPad, 64],
         maxZoom: 13
       };
     }
@@ -1203,28 +1224,13 @@
         latLngs.push([dispLat, dispLon]);
 
         const icon = getHierarchyPin(f.category);
-        const marker = L.marker([dispLat, dispLon], { icon });
+        const marker = L.marker([dispLat, dispLon], { icon, tierCategory: f.category });
 
-        const tPalette = TIER_COLORS[f.category] || TIER_COLORS['Medical Clinics'];
-
-        const popupHtml = `
-          <div class="p-1 font-sans min-w-[210px]">
-            <div class="flex items-center space-x-1.5 mb-1">
-              <span style="background-color:${tPalette.bg}; color:${tPalette.text}; border:1px solid ${tPalette.border};" class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded">${escapeHtml(f.category)}</span>
-              <span class="text-[9px] font-bold text-slate-500">${escapeHtml(f.ownershipFull)}</span>
-            </div>
-            <div class="font-bold text-slate-900 text-xs leading-snug">${escapeHtml(f.name)}</div>
-            <div class="mt-1.5 pt-1.5 border-t border-slate-200 text-[10.5px] space-y-0.5 text-slate-600">
-              <div><strong class="text-slate-800">Medical Doctors:</strong> <span class="text-emerald-700 font-bold">${escapeHtml(staffing.doctors)}</span></div>
-              <div><strong class="text-slate-800">Authority:</strong> <span class="text-amber-800 font-semibold">${escapeHtml(f.authorityFull)}</span></div>
-              <div><strong class="text-slate-800">District:</strong> ${escapeHtml(f.district)} (${escapeHtml(f.region)})</div>
-              ${f.beds > 0 ? `<div><strong class="text-slate-800">Beds:</strong> <span class="font-bold text-emerald-700">${escapeHtml(f.beds)} Beds</span></div>` : ''}
-            </div>
-          </div>
-        `;
-        marker.bindPopup(popupHtml);
-
-        marker.on('click', () => {
+        // On facility click: open only the dedicated corner Inspector Drawer (no hovering duplicate popup)
+        marker.on('click', (e) => {
+          if (e && e.originalEvent) {
+            e.originalEvent.stopPropagation();
+          }
           showFacilityInDrawer(f);
         });
 
@@ -1264,17 +1270,11 @@
       updateStaffingBarMetrics();
     });
 
-    // Clicking empty map space or closing a popup resets single-facility banner back to aggregate view
+    // Clicking empty map space resets single-facility banner and closes drawer
     map.on('click', () => {
       if (selectedFacility !== null) {
         selectedFacility = null;
         drawer.classList.add('hidden');
-        updateStaffingBarMetrics();
-      }
-    });
-    map.on('popupclose', () => {
-      if (selectedFacility !== null && drawer.classList.contains('hidden')) {
-        selectedFacility = null;
         updateStaffingBarMetrics();
       }
     });
@@ -1351,8 +1351,11 @@
       }
     }
 
-    document.getElementById('btnOpenStaffingMobile').addEventListener('click', toggleStaffingNormsModal);
-    document.getElementById('btnOpenStaffingDesktop').addEventListener('click', toggleStaffingNormsModal);
+    // Open / Close Staffing Guidelines Modal
+    ['btnOpenStaffingBottom', 'btnBottomDocs', 'btnBottomCoverage', 'btnBottomPop', 'btnOpenStaffingLegend'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', toggleStaffingNormsModal);
+    });
 
     document.getElementById('btnCloseStaffingModal').addEventListener('click', () => {
       staffingModal.classList.add('hidden');
