@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uganda Master Health Facility Interactive Map</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    h1, h2, h3, .font-heading {
+      font-family: 'Outfit', system-ui, sans-serif;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+      z-index: 10;
+    }
+    
+    /* Ugandan Flag Tricolor Ribbon */
+    .uganda-ribbon {
+      background: linear-gradient(90deg, 
+        #111111 0%, #111111 33.3%, 
+        #FCDC04 33.3%, #FCDC04 66.6%, 
+        #D90000 66.6%, #D90000 100%);
+      height: 5px;
+    }
+
+    /* Glassmorphism Floating Panels */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.16), 0 4px 14px -2px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Architectural House Pin Animations */
+    .facility-house-pin {
+      background: transparent;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+      cursor: pointer;
+    }
+    .facility-house-pin:hover {
+      transform: scale(1.35) translateY(-4px);
+      z-index: 99999 !important;
+      filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45)) !important;
+    }
+
+    /* Ugandan Flag-Themed Marker Clusters */
+    .marker-cluster-small {
+      background-color: rgba(252, 220, 4, 0.35) !important;
+    }
+    .marker-cluster-small div {
+      background-color: #FCDC04 !important;
+      color: #111111 !important;
+      font-weight: 800;
+    }
+    .marker-cluster-medium {
+      background-color: rgba(217, 0, 0, 0.35) !important;
+    }
+    .marker-cluster-medium div {
+      background-color: #D90000 !important;
+      color: #ffffff !important;
+      font-weight: 800;
+    }
+    .marker-cluster-large {
+      background-color: rgba(17, 17, 17, 0.4) !important;
+    }
+    .marker-cluster-large div {
+      background-color: #111111 !important;
+      color: #FCDC04 !important;
+      font-weight: 800;
+    }
+
+    /* Active Selection Tab Border */
+    .tier-tab-active {
+      border-color: #D90000 !important;
+      background-color: #FFFBEB !important;
+      box-shadow: 0 0 0 2px #FCDC04, 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* Scrollbars */
+    .scrollbar-thin::-webkit-scrollbar { width: 5px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-800 flex h-screen w-screen overflow-hidden">
+
+  <!-- Map Canvas Container (Full Window) -->
+  <div class="relative w-full h-full flex-1">
+    <div id="map"></div>
+
+    <!-- Ugandan Flag Tricolor Top Ribbon Bar -->
+    <div class="uganda-ribbon absolute top-0 left-0 right-0 z-40"></div>
+
+    <!-- FLOATING TOP NAVIGATION & SEARCH DOCK -->
+    <header class="absolute top-4 left-4 right-4 md:left-6 md:right-auto md:w-[490px] z-30 glass-panel rounded-2xl p-3.5 flex flex-col gap-2.5 transition-all duration-300">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <!-- Uganda Flag Icon Crest -->
+          <div class="w-10 h-10 rounded-xl bg-black border-2 border-yellow-400 flex items-center justify-center shadow-md relative overflow-hidden flex-shrink-0">
+            <div class="w-full h-full flex flex-col">
+              <div class="bg-black flex-1"></div>
+              <div class="bg-[#FCDC04] flex-1"></div>
+              <div class="bg-[#D90000] flex-1"></div>
+            </div>
+            <i class="fa-solid fa-hospital text-white absolute text-base drop-shadow-md"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-1.5">
+              <h1 class="text-base font-extrabold tracking-tight text-slate-900 leading-none">Uganda Health Atlas</h1>
+              <span class="bg-red-100 text-red-800 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-red-200 uppercase">National</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-medium mt-0.5">7,217 Master Facility Registry Coordinates</p>
+          </div>
+        </div>
+
+        <!-- Mapped Counter Badge -->
+        <div class="flex flex-col items-end">
+          <span id="activeCountBadge" class="bg-slate-900 text-yellow-400 text-xs font-mono font-extrabold px-3 py-1 rounded-full shadow-inner border border-yellow-400/40">7,217</span>
+          <span class="text-[9px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">Active On Map</span>
+        </div>
+      </div>
+
+      <!-- Live Search & Region Select in One Sleek Row -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2 pt-1 border-t border-slate-200/80">
+        <div class="relative md:col-span-7">
+          <input type="text" id="searchInput" placeholder="Search facility, district, authority..." 
+                 class="w-full text-xs pl-8 pr-3 py-2 bg-slate-50/90 border border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-slate-800 focus:outline-none placeholder:text-slate-400 font-medium">
+          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+        </div>
+
+        <div class="md:col-span-5">
+          <select id="regionSelect" class="w-full text-xs py-2 px-2.5 bg-slate-50/90 border border-slate-300 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-slate-800 focus:outline-none font-semibold text-slate-700">
+            <option value="ALL">All 15 Regions</option>
+            <option value="Acholi">Acholi</option>
+            <option value="Ankole">Ankole</option>
+            <option value="Bugisu">Bugisu</option>
+            <option value="Bukedi">Bukedi</option>
+            <option value="Bunyoro">Bunyoro</option>
+            <option value="Busoga">Busoga</option>
+            <option value="Kampala">Kampala</option>
+            <option value="Karamoja">Karamoja</option>
+            <option value="Kigezi">Kigezi</option>
+            <option value="Lango">Lango</option>
+            <option value="North Buganda">North Buganda</option>
+            <option value="South Buganda">South Buganda</option>
+            <option value="Teso">Teso</option>
+            <option value="Tooro">Tooro</option>
+            <option value="West Nile">West Nile</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- FLOATING HIERARCHY ISOLATION LEGEND (Left Side) -->
+    <div id="floatingLegend" class="absolute top-[160px] left-4 md:left-6 z-30 glass-panel rounded-2xl w-84 max-h-[calc(100vh-180px)] overflow-hidden flex flex-col shadow-2xl transition-all duration-300">
+      
+      <!-- Legend Header with Ugandan Flag colors -->
+      <div class="p-3 bg-gradient-to-r from-slate-900 via-neutral-900 to-black text-white flex items-center justify-between border-b border-yellow-400/40">
+        <div class="flex items-center space-x-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></div>
+          <span class="text-xs font-bold uppercase tracking-wider text-yellow-400 font-heading">Healthcare Hierarchy</span>
+        </div>
+        <button id="btnShowAllTiers" class="text-[10px] text-black font-extrabold px-2.5 py-1 rounded-lg bg-yellow-400 hover:bg-yellow-300 transition shadow">
+          Show All Levels
+        </button>
+      </div>
+
+      <!-- Single-Level Isolation Note -->
+      <div class="px-3 pt-2.5 pb-1">
+        <p class="text-[10.5px] text-slate-500 font-medium">Click any facility tier to <span class="font-bold text-slate-800">isolate and view only</span> facilities at that level:</p>
+      </div>
+
+      <!-- Clickable Hierarchy Tiers List with EXACT Matching Architectural SVG Icons -->
+      <div class="p-3 pt-1 overflow-y-auto scrollbar-thin space-y-1.5" id="tierLegendList"></div>
+
+      <!-- Ownership Filter Sub-section -->
+      <div class="p-3 pt-2 border-t border-slate-200 bg-slate-50/70">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600">Managing Sector</span>
+          <button id="btnAllOwnerships" class="text-[10px] text-red-600 hover:underline font-bold">Select All</button>
+        </div>
+        <div id="ownershipLegendList" class="grid grid-cols-3 gap-1.5"></div>
+
+        <!-- Basemap Note -->
+        <div class="pt-2 mt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-400">
+          <span class="flex items-center">
+            <i class="fa-solid fa-map-location-dot text-emerald-600 mr-1 text-xs"></i> Google Maps Streets
+          </span>
+          <span class="text-emerald-700 font-semibold">&bull; Exclusive Basemap</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOATING FACILITY INSPECTOR DRAWER (Right Side) -->
+    <div id="inspectorDrawer" class="hidden absolute top-4 right-4 z-30 w-80 md:w-96 glass-panel rounded-2xl shadow-2xl overflow-hidden border border-slate-200 transition-all duration-300">
+      
+      <!-- Drawer Header with Ugandan tricolor flag accents -->
+      <div class="relative bg-gradient-to-r from-slate-900 via-neutral-900 to-black p-4 text-white">
+        <div class="uganda-ribbon absolute top-0 left-0 right-0"></div>
+        <div class="flex items-start justify-between mt-1">
+          <div class="pr-2">
+            <div id="drawerTierBadge" class="inline-flex items-center space-x-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-yellow-400 text-black mb-1.5 shadow">
+              <i class="fa-solid fa-building-shield text-[9px]"></i>
+              <span id="drawerTierText">National Referral Hospital</span>
+            </div>
+            <h2 id="drawerFacilityName" class="text-base font-extrabold leading-tight text-white font-heading">Mulago National Referral Hospital</h2>
+          </div>
+          <button id="btnCloseDrawer" class="text-slate-400 hover:text-white text-lg p-1 transition rounded-lg hover:bg-white/10">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Drawer Body Content -->
+      <div class="p-4 space-y-3 text-xs text-slate-700 max-h-[70vh] overflow-y-auto scrollbar-thin">
+        
+        <!-- Authority Showcase Card -->
+        <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-yellow-300 rounded-xl p-3 shadow-sm flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-yellow-400 flex items-center justify-center text-slate-950 text-base shadow flex-shrink-0">
+            <i class="fa-solid fa-landmark-flag"></i>
+          </div>
+          <div>
+            <span class="block text-[10px] uppercase font-bold text-yellow-900 tracking-wider">Governing / Managing Authority</span>
+            <span id="drawerAuthority" class="text-xs font-extrabold text-slate-900">Ministry of Health</span>
+          </div>
+        </div>
+
+        <!-- Key Metrics Cards -->
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-50/90 p-2.5 rounded-xl border border-slate-200">
+            <span class="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Sector Ownership</span>
+            <span id="drawerOwnership" class="font-extrabold text-slate-800 text-xs">Government (Public)</span>
+          </div>
+          <div class="bg-slate-50/90 p-2.5 rounded-xl border border-slate-200">
+            <span class="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">Bed Capacity</span>
+            <span id="drawerBeds" class="font-extrabold text-slate-800 text-xs">1,500 Beds</span>
+          </div>
+        </div>
+
+        <!-- Administrative Hierarchy -->
+        <div class="bg-white/90 p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-sm text-xs">
+          <div class="flex justify-between items-center pb-1 border-b border-slate-100">
+            <span class="text-slate-500 font-medium">Health Region:</span>
+            <span id="drawerRegion" class="font-bold text-slate-900">Kampala</span>
+          </div>
+          <div class="flex justify-between items-center pb-1 border-b border-slate-100">
+            <span class="text-slate-500 font-medium">District:</span>
+            <span id="drawerDistrict" class="font-bold text-slate-900">Kampala City</span>
+          </div>
+          <div class="flex justify-between items-center pb-1 border-b border-slate-100">
+            <span class="text-slate-500 font-medium">Subcounty / Division:</span>
+            <span id="drawerSubcounty" class="font-bold text-slate-900">Kawempe Division</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500 font-medium">GPS Precision Quality:</span>
+            <span id="drawerTier" class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[11px]">Ground-Verified Gate GPS</span>
+          </div>
+        </div>
+
+        <!-- Google Maps Turn-by-turn Navigation CTA -->
+        <a id="btnGoogleMapsNav" href="#" target="_blank" class="flex items-center justify-center space-x-2 w-full py-2.5 px-4 bg-slate-900 hover:bg-black text-yellow-400 hover:text-yellow-300 font-bold rounded-xl shadow-lg border border-yellow-400/30 transition transform hover:-translate-y-0.5">
+          <i class="fa-solid fa-location-arrow"></i>
+          <span>Open in Google Maps Navigation</span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Authority Translation Dictionary (Complete Replacement of Acronyms)
+    const AUTHORITY_NAMES = {
+      'MOH': 'Ministry of Health',
+      'UPDF': "Uganda Peoples' Defence Forces",
+      'UPS': 'Uganda Prisons Service',
+      'UPF': 'Uganda Police Force',
+      'UCMB': 'Uganda Catholic Medical Bureau',
+      'UPMB': 'Uganda Protestant Medical Bureau',
+      'UMMB': 'Uganda Muslim Medical Bureau',
+      'UOMB': 'Uganda Orthodox Medical Bureau',
+      'UCBHCA': 'Uganda Community Based Health Care Association',
+      'UBTS': 'Uganda Blood Transfusion Service',
+      'MoES': 'Ministry of Education and Sports',
+      'NGO': 'Non-Governmental Organization',
+      'UNHCR': 'United Nations High Commissioner for Refugees',
+      'SDA': 'Seventh-day Adventist Health Services',
+      'Local Government': 'Local Government',
+      'Private Authority': 'Private Authority'
+    };
+
+    // Ownership Translation Dictionary (Complete Replacement of Acronyms)
+    const OWNERSHIP_NAMES = {
+      'GOV': 'Government (Public)',
+      'PNFP': 'Private Not-For-Profit',
+      'PFP': 'Private For-Profit'
+    };
+
+    // Ensure RAW_FACILITIES is declared and populated in the global scope
+    // Format: [name, original_cat, raw_level, ownership_code, authority_code, region, district, subcounty, lat, lon, tier, beds]
+    window.RAW_FACILITIES = window.RAW_FACILITIES || [
+      ["Mulago National Referral Hospital", "NRH", "NRH", "GOV", "MOH", "Kampala", "Kampala", "Kawempe Division", 0.3396, 32.5768, 1, 1500],
+      ["Mulago Specialized Women and Neonatal Hospital", "NRH", "NRH", "GOV", "MOH", "Kampala", "Kampala", "Kawempe Division", 0.3402, 32.5781, 1, 450],
+      ["Uganda Cancer Institute", "NRH", "NRH", "GOV", "MOH", "Kampala", "Kampala", "Kawempe Division", 0.3389, 32.5762, 1, 200],
+      ["Uganda Heart Institute", "NRH", "NRH", "GOV", "MOH", "Kampala", "Kampala", "Kawempe Division", 0.3392, 32.5772, 1, 150],
+      ["Kiruddu National Referral Hospital", "NRH", "NRH", "GOV", "MOH", "Kampala", "Kampala", "Makindye Division", 0.2483, 32.6127, 1, 200],
+      ["Kawempe National Referral Hospital", "NRH", "NRH", "GOV", "MOH", "Kampala", "Kampala", "Kawempe Division", 0.3622, 32.5614, 1, 200],
+      ["Butabika National Referral Hospital", "NRH", "NRH", "GOV", "MOH", "Kampala", "Kampala", "Nakawa Division", 0.3150, 32.6585, 1, 550],
+      ["China-Uganda Friendship Hospital Naguru", "NRH", "NRH", "GOV", "MOH", "Kampala", "Kampala", "Nakawa Division", 0.3290, 32.6068, 1, 100],
+      ["UPDF National Referral Hospital", "NRH", "NRH", "GOV", "UPDF", "Kampala", "Kampala", "Nakawa Division", 0.3393, 32.6217, 2, 120],
+      ["Gulu Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Acholi", "Gulu City", "Laroo Pece Division", 2.7775, 32.2989, 1, 350],
+      ["Arua Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "West Nile", "Arua City", "Arua Central Division", 3.0198, 30.9120, 1, 320],
+      ["Jinja Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Busoga", "Jinja City", "Jinja South Division", 0.4300, 33.2036, 1, 370],
+      ["Mbarara Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Ankole", "Mbarara City", "Mbarara North Division", -0.6159, 30.6590, 1, 400],
+      ["Kabale Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Kigezi", "Kabale", "Central Division", -0.9990, 29.9895, 1, 280],
+      ["Fort Portal Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Tooro", "Fort Portal City", "Fort Portal Central Division", 0.6560, 30.2806, 1, 330],
+      ["Mbale Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Bugisu", "Mbale City", "Northern Division", 1.0775, 34.1760, 1, 400],
+      ["Soroti Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Teso", "Soroti City", "Soroti East Division", 1.7158, 33.6141, 1, 280],
+      ["Lira Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Lango", "Lira City", "Lira West Division", 2.2516, 32.9028, 1, 300],
+      ["Hoima Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Bunyoro", "Hoima City", "Hoima East Division", 1.4289, 31.3548, 1, 280],
+      ["Mubende Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "North Buganda", "Mubende", "Eastern Division", 0.5677, 31.3936, 1, 200],
+      ["Masaka Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "South Buganda", "Masaka City", "Kimaanya-Kabonera Division", -0.3291, 31.7347, 1, 330],
+      ["Moroto Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "Karamoja", "Moroto", "Northern Division", 2.5306, 34.6569, 1, 180],
+      ["Kayunga Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "North Buganda", "Kayunga", "Kayunga Town Council", 0.7033, 32.9026, 1, 200],
+      ["Yumbe Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "West Nile", "Yumbe", "Kuru Town Council", 3.4394, 31.1877, 1, 200],
+      ["Entebbe Regional Referral Hospital", "RRH", "RRH", "GOV", "MOH", "South Buganda", "Wakiso", "Division A", 0.0635, 32.4720, 1, 200],
+      ["Lira Regional Blood Bank", "RBB", "RBB", "GOV", "UBTS", "Lango", "Lira City", "Lira West Division", 2.2514, 32.9022, 1, 0],
+      ["Masaka Regional Blood Bank", "RBB", "RBB", "GOV", "UBTS", "South Buganda", "Masaka City", "Nyendo-Mukungwe Division", -0.3448, 31.7589, 1, 0],
+      ["Fort Portal Regional Blood Bank", "RBB", "RBB", "GOV", "UBTS", "Tooro", "Fort Portal City", "Fort Portal Central Division", 0.6552, 30.2829, 1, 0],
+      ["Arua Regional Blood Bank", "RBB", "RBB", "GOV", "UBTS", "West Nile", "Arua City", "Arua Central Division", 3.0198, 30.9120, 1, 0],
+      ["Soroti Blood Collection & Distribution Point", "BCDP", "BCDP", "GOV", "UBTS", "Teso", "Soroti City", "Soroti East Division", 1.7158, 33.6141, 1, 0],
+      ["Rukungiri Blood Collection & Distribution Point", "BCDP", "BCDP", "GOV", "UBTS", "Kigezi", "Rukungiri", "Eastern Division", -0.7846, 29.9338, 2, 0],
+      ["St. Mary's Hospital Lacor", "Hospital", "General Hospital", "PNFP", "UCMB", "Acholi", "Gulu City", "Bar-Dege Layibi Division", 2.7660, 32.2523, 1, 480],
+      ["Kiryandongo General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Bunyoro", "Kiryandongo", "Kiryandongo Town Council", 1.8787, 32.0622, 1, 109],
+      ["Masindi General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Bunyoro", "Masindi", "Central Division", 1.6842, 31.7169, 1, 160],
+      ["Kagadi General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Bunyoro", "Kagadi", "Kagadi Town Council", 0.9417, 30.8101, 1, 100],
+      ["Anaka General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Acholi", "Nwoya", "Anaka Town Council", 2.5998, 31.9479, 1, 100],
+      ["Kitgum General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Acholi", "Kitgum", "Central Division", 3.2948, 32.8817, 1, 150],
+      ["Abim General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Karamoja", "Abim", "Abim Town Council", 2.6984, 33.6576, 1, 112],
+      ["Kotido General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Karamoja", "Kotido", "Central Division", 3.0149, 34.1159, 1, 100],
+      ["Kaabong General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Karamoja", "Kaabong", "Kaabong Town Council", 3.5127, 34.1322, 1, 100],
+      ["Ibanda Hospital", "Hospital", "General Hospital", "PNFP", "UCMB", "Ankole", "Ibanda", "Kagongo Division", -0.1308, 30.4487, 1, 120],
+      ["Itojo General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Ankole", "Ntungamo", "Itojo Subcounty", -0.7872, 30.2771, 1, 120],
+      ["Kitagata General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Ankole", "Sheema", "Kitagata Town Council", -0.6767, 30.1521, 1, 100],
+      ["Ishaka Adventist Hospital", "Hospital", "General Hospital", "PNFP", "UPMB", "Ankole", "Bushenyi", "Ishaka Division", -0.5441, 30.1381, 1, 120],
+      ["KIU Teaching Hospital", "Hospital", "General Hospital", "PFP", "Private Authority", "Ankole", "Bushenyi", "Ishaka Division", -0.5402, 30.1459, 1, 250],
+      ["Busolwe General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Bukedi", "Butaleja", "Busolwe Town Council", 0.8499, 33.9291, 1, 100],
+      ["Bududa General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Bugisu", "Bududa", "Bududa Town Council", 1.0088, 34.3325, 1, 100],
+      ["Kapchorwa General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Bugisu", "Kapchorwa", "Central Division", 1.4027, 34.4426, 1, 150],
+      ["Tororo General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Bukedi", "Tororo", "Eastern Division", 0.6939, 34.1863, 1, 200],
+      ["Pallisa General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Bukedi", "Pallisa", "Pallisa Town Council", 1.1764, 33.7116, 1, 100],
+      ["Iganga General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Busoga", "Iganga", "Central Division", 0.6164, 33.4844, 1, 100],
+      ["Bugiri General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Busoga", "Bugiri", "Western Division", 0.5729, 33.7425, 1, 100],
+      ["Kamuli General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "Busoga", "Kamuli", "Southern Division", 0.9475, 33.1213, 1, 100],
+      ["Kamuli Mission Hospital", "Hospital", "General Hospital", "PNFP", "UCMB", "Busoga", "Kamuli", "Northern Division", 0.9318, 33.1285, 1, 160],
+      ["Mengo Hospital", "Hospital", "General Hospital", "PNFP", "UPMB", "Kampala", "Kampala", "Lubaga Division", 0.3131, 32.5600, 1, 300],
+      ["Rubaga Hospital", "Hospital", "General Hospital", "PNFP", "UCMB", "Kampala", "Kampala", "Lubaga Division", 0.3080, 32.5516, 1, 275],
+      ["St. Francis Hospital Nsambya", "Hospital", "General Hospital", "PNFP", "UCMB", "Kampala", "Kampala", "Makindye Division", 0.3017, 32.5850, 1, 360],
+      ["Kibuli Hospital", "Hospital", "General Hospital", "PNFP", "UMMB", "Kampala", "Kampala", "Makindye Division", 0.3088, 32.5957, 1, 200],
+      ["Kawolo General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "North Buganda", "Buikwe", "Lugazi Central Division", 0.3678, 32.9451, 1, 106],
+      ["Mukono General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "North Buganda", "Mukono", "Central Division", 0.3609, 32.7470, 1, 100],
+      ["Kiwoko Hospital", "Hospital", "General Hospital", "PNFP", "UPMB", "North Buganda", "Nakaseke", "Kiwoko Town Council", 0.8392, 32.3603, 1, 250],
+      ["Luwero General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "North Buganda", "Luwero", "Luweero Town Council", 0.8346, 32.4992, 1, 100],
+      ["Kiboga General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "North Buganda", "Kiboga", "Kiboga Town Council", 0.9115, 31.7773, 1, 100],
+      ["Mityana General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "North Buganda", "Mityana", "Central Division", 0.3966, 32.0433, 1, 100],
+      ["Gombe General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "South Buganda", "Butambala", "Gombe Town Council", 0.1813, 32.1149, 1, 100],
+      ["Villa Maria Hospital", "Hospital", "General Hospital", "PNFP", "UCMB", "South Buganda", "Kalungu", "Kalungu Subcounty", -0.2308, 31.7435, 1, 130],
+      ["Kitovu Hospital", "Hospital", "General Hospital", "PNFP", "UCMB", "South Buganda", "Masaka City", "Nyendo-Mukungwe Division", -0.3437, 31.7593, 1, 240],
+      ["Rakai General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "South Buganda", "Rakai", "Rakai Town Council", -0.7135, 31.4029, 1, 100],
+      ["Kalisizo General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "South Buganda", "Kyotera", "Kalisizo Town Council", -0.5356, 31.6225, 1, 100],
+      ["Lyantonde General Hospital", "Hospital", "General Hospital", "GOV", "Local Government", "South Buganda", "Lyantonde", "Lyantonde Town Council", -0.3936, 31.1530, 1, 100],
+      ["Patongo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Acholi", "Agago", "Patongo Town Council", 2.7604, 33.3118, 1, 40],
+      ["Atiak Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Acholi", "Amuru", "Atiak Town Council", 3.2556, 32.1204, 1, 40],
+      ["Awach Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Acholi", "Gulu", "Awach Subcounty", 2.9674, 32.4016, 1, 40],
+      ["Namokora Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Acholi", "Kitgum", "Namokora Subcounty", 3.3488, 33.3392, 1, 40],
+      ["Padibe Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Acholi", "Lamwo", "Padibe Town Council", 3.4875, 32.8164, 1, 40],
+      ["Lalogi Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Acholi", "Omoro", "Lalogi Subcounty", 2.6327, 32.5673, 1, 40],
+      ["Pajule Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Acholi", "Pader", "Pajule Town Council", 2.9753, 32.9346, 1, 40],
+      ["Kyabugimbi Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Bushenyi", "Kyabugimbi Town Council", -0.4965, 30.2660, 1, 35],
+      ["Ruhoko Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Ibanda", "Kagongo Division", -0.1552, 30.4789, 1, 40],
+      ["Rwekubo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Isingiro", "Isingiro Town Council", -0.8390, 30.8336, 1, 40],
+      ["Kazo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Kazo", "Kazo Town Council", -0.0492, 30.7573, 1, 40],
+      ["Kiruhura Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Kiruhura", "Kiruhura Town Council", -0.2084, 30.8431, 1, 40],
+      ["Mbarara Municipal Council Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Mbarara City", "Mbarara North Division", -0.6116, 30.6600, 1, 50],
+      ["Bitereko Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Mitooma", "Bitereko Subcounty", -0.5657, 29.9709, 1, 35],
+      ["Kitwe Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Ntungamo", "Kitwe Town Council", -0.9836, 30.4655, 1, 40],
+      ["Rugazi Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Rubirizi", "Rubirizi Town Council", -0.2614, 30.1036, 1, 40],
+      ["Bugamba Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Rwampara", "Rweibogo - Kibingo Town Council", -0.7429, 30.5200, 1, 40],
+      ["Kabwohe Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Ankole", "Sheema", "Kabwohe Division", -0.5738, 30.3794, 1, 45],
+      ["Bulucheke Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bugisu", "Bududa", "Bulucheke Subcounty", 1.0284, 34.3731, 1, 35],
+      ["Bukwo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bugisu", "Bukwo", "Bukwo Town Council", 1.2948, 34.7564, 1, 35],
+      ["Muyembe Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bugisu", "Bulambuli", "Bulambuli Town Council", 1.3279, 34.2919, 1, 40],
+      ["Kaserem Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bugisu", "Kapchorwa", "Kaserem Subcounty", 1.3256, 34.3372, 1, 35],
+      ["Kaproron Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bugisu", "Kween", "Kaproron Town Council", 1.4218, 34.6164, 1, 35],
+      ["Bubulo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bugisu", "Manafwa", "Manafwa Town Council", 0.9541, 34.2815, 1, 40],
+      ["Budadiri Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bugisu", "Sironko", "Budadiri Town Council", 1.1704, 34.3339, 1, 40],
+      ["Namatala Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bugisu", "Mbale City", "Industrial Division", 1.0853, 34.1648, 1, 40],
+      ["Budaka Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bukedi", "Budaka", "Budaka Town Council", 1.0173, 33.9528, 1, 40],
+      ["Busia Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bukedi", "Busia", "Western Division", 0.4712, 34.0891, 1, 45],
+      ["Butebo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bukedi", "Butebo", "Butebo Town Council", 1.1990, 33.9192, 1, 35],
+      ["Kibuku Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bukedi", "Kibuku", "Kibuku Town Council", 1.0477, 33.8005, 1, 40],
+      ["Mukuju Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bukedi", "Tororo", "Mukuju Subcounty", 0.7449, 34.1911, 1, 40],
+      ["Biiso Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bunyoro", "Buliisa", "Biiso Town Council", 1.7604, 31.4197, 1, 35],
+      ["Kigorobya Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bunyoro", "Hoima", "Kigorobya Town Council", 1.6150, 31.3085, 1, 40],
+      ["Kakindo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bunyoro", "Kakumiro", "Kakindo Town Council", 1.0709, 31.1852, 1, 40],
+      ["Kibaale Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bunyoro", "Kibaale", "Kibaale Town Council", 0.7901, 31.0752, 1, 40],
+      ["Kikuube Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bunyoro", "Kikuube", "Kikuube Town Council", 1.3404, 31.2219, 1, 40],
+      ["Panyadoli Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bunyoro", "Kiryandongo", "Bweyale Town Council", 1.9396, 32.1698, 1, 45],
+      ["Bwijanga Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Bunyoro", "Masindi", "Bwijanga Subcounty", 1.5327, 31.5840, 1, 40],
+      ["Nankoma Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Bugiri", "Nankoma Town Council", 0.4510, 33.6794, 1, 40],
+      ["Busesa Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Bugweri", "Bugweri Town Council", 0.6252, 33.5928, 1, 40],
+      ["Buyende Bugaya Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Buyende", "Bugaya Subcounty", 1.0957, 33.2431, 1, 40],
+      ["Bugono Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Iganga", "Nabitende Subcounty", 0.7949, 33.4533, 1, 40],
+      ["Budondo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Jinja City", "Jinja North Division", 0.5169, 33.1621, 1, 40],
+      ["Walukuba Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Jinja City", "Jinja South Division", 0.4375, 33.2251, 1, 45],
+      ["Bumanya Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Kaliro", "Bumanya Subcounty", 1.0022, 33.4954, 1, 40],
+      ["Nankandulo Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Kamuli", "Magogo Subcounty", 0.6793, 33.0776, 1, 40],
+      ["Kiyunga Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Luuka", "Luuka Town Council", 0.7662, 33.3314, 1, 40],
+      ["Kityerera Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Mayuge", "Bugadde Town Council", 0.3276, 33.5188, 1, 40],
+      ["Buyinja Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Namayingo", "Namayingo Town Council", 0.3429, 33.8756, 1, 40],
+      ["Nsinze Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Busoga", "Namutumba", "Nsinze Subcounty", 0.8156, 33.6099, 1, 40],
+      ["Kisenyi Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Kampala", "Kampala", "Central Division", 0.3075, 32.5691, 1, 50],
+      ["Kawaala Health Centre IV", "HC IV", "HC IV", "GOV", "Local Government", "Kampala", "Kampala", "Lubaga Division", 0.3407, 32.5537, 1, 45],
+      ["Adilang Health Centre III", "HC III", "HC III", "GOV", "Local Government", "Acholi", "Agago", "Adilang Town Council", 2.7413, 33.4753, 1, 20],
+      ["Acholpii Health Centre III", "HC III", "HC III", "GOV", "Local Government", "Acholi", "Agago", "Arum Subcounty", 2.7319, 33.0504, 1, 15],
+      ["Bibia Health Centre III", "HC III", "HC III", "GOV", "Local Government", "Acholi", "Amuru", "Elegu Town Council", 3.4726, 32.0673, 1, 18],
+      ["Bardege Health Centre III", "HC III", "HC III", "GOV","Local Government", "Acholi", "Gulu City", "Bar-Dege Layibi Division", 2.7948, 32.2932, 1, 20],
+      ["Alop Health Centre II", "HC II", "HC II", "GOV", "Local Government", "Acholi", "Agago", "Adilang Subcounty", 2.6688, 33.4502, 1, 0],
+      ["Acuru Health Centre II", "HC II", "HC II", "GOV", "Local Government", "Acholi", "Agago", "Agengo Subcounty", 2.9257, 33.1928, 1, 0],
+      ["Geregere Health Centre II", "HC II", "HC II", "GOV", "Local Government", "Acholi", "Agago", "Geregere Subcounty", 2.7695, 33.2347, 1, 0],
+      ["AAR Buganda Road Clinic", "Clinic", "Clinic", "PFP", "Private Authority", "Kampala", "Kampala", "Central Division", 0.3285, 32.5708, 1, 0],
+      ["AAR City Centre", "Clinic", "Clinic", "PFP", "Private Authority", "Kampala", "Kampala", "Central Division", 0.3129, 32.5851, 1, 0],
+      ["AAR Acacia Clinic", "Clinic", "Clinic", "PFP", "Private Authority", "Kampala", "Kampala", "Central Division", 0.3327, 32.5853, 1, 0],
+      ["Aga Khan DTB Clinic", "Clinic", "Clinic", "PFP", "Private Authority", "Kampala", "Kampala", "Central Division", 0.3124, 32.5837, 1, 0],
+      ["Health Link Drugshop", "Drug Shop", "Drug Shop", "PFP", "Private Authority", "Lango", "Apac", "Akokoro Subcounty", 1.7423, 32.2532, 2, 0],
+      ["Med4 Drugshop", "Drug Shop", "Drug Shop", "PFP", "Private Authority", "Lango", "Apac", "Akokoro Subcounty", 1.7423, 32.2532, 2, 0],
+      ["Trinity Drugshop", "Drug Shop", "Drug Shop", "PFP", "Private Authority", "Lango", "Apac", "Akokoro Subcounty", 1.7423, 32.2532, 2, 0],
+      ["Amola Drugshop", "Drug Shop", "Drug Shop", "PFP", "Private Authority", "Lango", "Apac", "Apac Subcounty", 1.9664, 32.5697, 2, 0],
+      ["St. Ambrose Drugshop", "Drug Shop", "Drug Shop", "PFP", "Private Authority", "Lango", "Apac", "Apac Subcounty", 1.9664, 32.5697, 2, 0]
+    ];
+    var RAW_FACILITIES = window.RAW_FACILITIES;
+  </script>
+  <!-- Load Dataset Array Chunk -->
+  <script src="https://cdn.jsdelivr.net/gh/d3/d3@7/dist/d3.min.js"></script>
+  <script>
+    // Re-bind the comprehensive facility array with split category logic
+    // We categorize each facility strictly into:
+    // 1. "National Referral Hospitals"
+    // 2. "Regional Referral Hospitals"
+    // 3. "General Hospitals"
+    // 4. "Health Centre IV"
+    // 5. "Health Centre III"
+    // 6. "Health Centre II"
+    // 7. "Specialised Facilities" (Blood Banks & Institutes)
+    // 8. "Medical Clinics" (Outpatient & Private Clinics)
+    // 9. "Licensed Drug Shops" (Community Pharmacies & Drug Shops)
+
+    function categorizeFacility(item) {
+      const rawCat = item[1];
+      const rawLvl = item[2];
+      const name = item[0].toLowerCase();
+
+      if (rawCat === 'NRH') return 'National Referral Hospitals';
+      if (rawCat === 'RRH') return 'Regional Referral Hospitals';
+      if (rawCat === 'Hospital' || rawLvl === 'General Hospital') return 'General Hospitals';
+      if (rawCat === 'HC IV' || rawLvl === 'HC IV') return 'Health Centre IV';
+      if (rawCat === 'HC III' || rawLvl === 'HC III') return 'Health Centre III';
+      if (rawCat === 'HC II' || rawLvl === 'HC II') return 'Health Centre II';
+
+      // Distinguish Specialised Facilities from Clinics & Drug Shops
+      if (rawLvl === 'BCDP' || rawLvl === 'RBB' || name.includes('blood bank') || name.includes('blood collection') || name.includes('cancer institute') || name.includes('heart institute')) {
+        return 'Specialised Facilities';
+      }
+      if (rawLvl === 'Drug Shop' || name.includes('drugshop') || name.includes('drug shop')) {
+        return 'Licensed Drug Shops';
+      }
+      return 'Medical Clinics';
+    }
+
+    // 1. Initialize Leaflet Map
+    const map = L.map('map', {
+      center: [1.3733, 32.2903], // Geometric Center of Uganda
+      zoom: 7,
+      minZoom: 6,
+      maxZoom: 18,
+      zoomControl: false
+    });
+    
+    // Position zoom control cleanly in bottom-right corner
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // 2. Google Maps Streets Roadmap (Exclusive Basemap) with multi-server round-robin
+    const googleStreets = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '&copy; Google Maps &bull; Uganda Ministry of Health'
+    }).addTo(map);
+
+    // 3. ARCHITECTURAL HIERARCHY ICONS GENERATOR
+    // Uses the EXACT SAME SVG for both Map Pins and Legend Tabs, scaled according to hierarchy:
+    // National Referral Hospitals (42px) -> Regional Referral Hospitals (36px) -> General Hospitals (32px)
+    // -> Health Centre IV (28px) -> Health Centre III (24px) -> Health Centre II (21px)
+    // -> Specialised Facilities (25px) -> Medical Clinics (20px) -> Licensed Drug Shops (17px)
+    function getHierarchySvgString(tierName, size) {
+      if (tierName === 'National Referral Hospitals') {
+        return `
+          <svg viewBox="0 0 44 44" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="22" cy="22" r="20" fill="#D90000" stroke="#FCDC04" stroke-width="2.8" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.45))"/>
+            <rect x="11" y="15" width="22" height="19" rx="2" fill="#FFFFFF"/>
+            <path d="M8 16 L22 4 L36 16 Z" fill="#111111" stroke="#FCDC04" stroke-width="1.8"/>
+            <rect x="19.5" y="19" width="5" height="12" fill="#D90000"/>
+            <rect x="16" y="22.5" width="12" height="5" fill="#D90000"/>
+            <polygon points="22,6 23.5,10.5 28,10.5 24.5,13 26,17.5 22,14.5 18,17.5 19.5,13 16,10.5 20.5,10.5" fill="#FCDC04"/>
+          </svg>
+        `;
+      } else if (tierName === 'Regional Referral Hospitals') {
+        return `
+          <svg viewBox="0 0 38 38" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="19" cy="19" r="17.5" fill="#111111" stroke="#FCDC04" stroke-width="2.4" filter="drop-shadow(0 3px 5px rgba(0,0,0,0.4))"/>
+            <rect x="10" y="14" width="18" height="16" rx="1.5" fill="#FFFFFF"/>
+            <path d="M7 15 L19 5.5 L31 15 Z" fill="#D90000"/>
+            <path d="M19 17 V26 M14.5 21.5 H23.5" stroke="#111111" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        `;
+      } else if (tierName === 'General Hospitals') {
+        return `
+          <svg viewBox="0 0 34 34" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="17" cy="17" r="15.5" fill="#D90000" stroke="#FFFFFF" stroke-width="2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.35))"/>
+            <rect x="9" y="13" width="16" height="14" rx="1" fill="#FFFFFF"/>
+            <path d="M7 14 L17 5 L27 14 Z" fill="#FCDC04" stroke="#111111" stroke-width="1.2"/>
+            <path d="M17 16 V23.5 M13.5 19.8 H20.5" stroke="#D90000" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+        `;
+      } else if (tierName === 'Health Centre IV') {
+        return `
+          <svg viewBox="0 0 30 30" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="15" cy="15" r="14" fill="#FCDC04" stroke="#111111" stroke-width="2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.25))"/>
+            <rect x="8" y="12" width="14" height="12" rx="1" fill="#FFFFFF"/>
+            <path d="M6 13 L15 5.5 L24 13 Z" fill="#111111"/>
+            <path d="M15 14.5 V21.5 M11.5 18 H18.5" stroke="#D90000" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        `;
+      } else if (tierName === 'Health Centre III') {
+        return `
+          <svg viewBox="0 0 28 28" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="14" cy="14" r="13" fill="#047857" stroke="#FFFFFF" stroke-width="1.8" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.25))"/>
+            <rect x="7" y="11" width="14" height="11" rx="1" fill="#FFFFFF"/>
+            <path d="M5 12 L14 5 L23 12 Z" fill="#10B981"/>
+            <circle cx="14" cy="16.5" r="2.4" fill="#047857"/>
+          </svg>
+        `;
+      } else if (tierName === 'Health Centre II') {
+        return `
+          <svg viewBox="0 0 26 26" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="13" cy="13" r="12" fill="#0284C7" stroke="#FFFFFF" stroke-width="1.6" filter="drop-shadow(0 1px 3px rgba(0,0,0,0.25))"/>
+            <rect x="7" y="11" width="12" height="9.5" fill="#FFFFFF" rx="0.8"/>
+            <path d="M5 11.5 L13 5.5 L21 11.5 Z" fill="#38BDF8"/>
+            <rect x="11.5" y="15" width="3" height="5.5" fill="#0284C7"/>
+          </svg>
+        `;
+      } else if (tierName === 'Specialised Facilities') {
+        return `
+          <svg viewBox="0 0 30 30" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="15" cy="15" r="14" fill="#991B1B" stroke="#FCDC04" stroke-width="2" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.3))"/>
+            <path d="M15 6 C12 12, 8 16, 8 20 A7 7 0 0 0 22 20 C22 16, 18 12, 15 6 Z" fill="#FFFFFF"/>
+            <path d="M15 14 V20 M12 17 H18" stroke="#991B1B" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        `;
+      } else if (tierName === 'Medical Clinics') {
+        return `
+          <svg viewBox="0 0 24 24" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="11" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.4"/>
+            <rect x="6.5" y="10" width="11" height="9" fill="#FFFFFF" rx="0.6"/>
+            <path d="M4.5 10.5 L12 4.5 L19.5 10.5 Z" fill="#C4B5FD"/>
+            <path d="M12 12 V17 M9.5 14.5 H14.5" stroke="#7C3AED" stroke-width="1.6"/>
+          </svg>
+        `;
+      } else {
+        // Licensed Drug Shops
+        return `
+          <svg viewBox="0 0 22 22" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="10" fill="#0D9488" stroke="#FFFFFF" stroke-width="1.3"/>
+            <rect x="6" y="9" width="10" height="8" fill="#FFFFFF" rx="0.5"/>
+            <path d="M4.5 9.5 L11 4.5 L17.5 9.5 Z" fill="#5EEAD4"/>
+            <circle cx="11" cy="13" r="2" fill="#0D9488"/>
+          </svg>
+        `;
+      }
+    }
+
+    // Leaflet DivIcon with Decreasing Size Scale
+    function createHierarchyPin(tierName) {
+      const sizeMap = {
+        'National Referral Hospitals': 42,
+        'Regional Referral Hospitals': 36,
+        'General Hospitals': 32,
+        'Health Centre IV': 28,
+        'Health Centre III': 24,
+        'Health Centre II': 21,
+        'Specialised Facilities': 25,
+        'Medical Clinics': 20,
+        'Licensed Drug Shops': 17
+      };
+
+      const px = sizeMap[tierName] || 22;
+      const anchorY = px;
+      const anchorX = px / 2;
+
+      return L.divIcon({
+        className: 'facility-house-pin',
+        html: getHierarchySvgString(tierName, px),
+        iconSize: [px, px],
+        iconAnchor: [anchorX, anchorY],
+        popupAnchor: [0, -anchorY]
+      });
+    }
+
+    // 4. Cluster Group
+    const markerCluster = L.markerClusterGroup({
+      chunkedLoading: true,
+      maxClusterRadius: 40,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false
+    });
+    map.addLayer(markerCluster);
+
+    // Active Selection State:
+    // If isolatedTier is null, all tiers are visible. When a tier tab is clicked, ONLY that tier is shown.
+    let isolatedTier = null; 
+    const activeOwnerships = new Set(['GOV', 'PNFP', 'PFP']);
+    let selectedRegion = 'ALL';
+    let searchQuery = '';
+
+    // Complete Hierarchy Configuration (No Acronyms)
+    const HIERARCHY_CONFIG = [
+      { key: 'National Referral Hospitals', label: 'National Referral Hospitals', sub: 'Apex Specialized Medical Institutes', count: 9 },
+      { key: 'Regional Referral Hospitals', label: 'Regional Referral Hospitals', sub: 'Regional Clinical Reference Hospitals', count: 16 },
+      { key: 'General Hospitals', label: 'General Hospitals', sub: 'District Referral & Mission Hospitals', count: 219 },
+      { key: 'Health Centre IV', label: 'Health Centre IV', sub: 'Constituency & County Mini-Hospitals', count: 310 },
+      { key: 'Health Centre III', label: 'Health Centre III', sub: 'Subcounty Maternity & Inpatient Wards', count: 2230 },
+      { key: 'Health Centre II', label: 'Health Centre II', sub: 'Parish Outpatient Primary Dispensaries', count: 3905 },
+      { key: 'Specialised Facilities', label: 'Specialised Facilities', sub: 'Regional Blood Banks & Transfusion Centers', count: 6 },
+      { key: 'Medical Clinics', label: 'Medical Clinics', sub: 'Private & Community Outpatient Clinics', count: 447 },
+      { key: 'Licensed Drug Shops', label: 'Licensed Drug Shops', sub: 'Supervised Community Medicine Dispensaries', count: 75 }
+    ];
+
+    const OWNERSHIP_CONFIG = [
+      { key: 'GOV', label: 'Government (Public)', count: 3540, bg: 'bg-black text-yellow-400 border-yellow-400' },
+      { key: 'PNFP', label: 'Private Not-For-Profit', count: 1047, bg: 'bg-emerald-700 text-white border-emerald-800' },
+      { key: 'PFP', label: 'Private For-Profit', count: 2630, bg: 'bg-red-700 text-white border-red-800' }
+    ];
+
+    // Build the Floating Hierarchy Legend with Matching Identical SVG House Icons
+    function setupFloatingLegend() {
+      const tContainer = document.getElementById('tierLegendList');
+      tContainer.innerHTML = '';
+
+      HIERARCHY_CONFIG.forEach(item => {
+        const row = document.createElement('div');
+        row.dataset.tier = item.key;
+        row.className = 'tier-legend-row flex items-center justify-between p-2 rounded-xl border border-slate-200 bg-white hover:border-slate-400 cursor-pointer transition select-none shadow-sm';
+        
+        // Exact identical architectural house icon rendered at 24px in the legend tab
+        const svgIcon = getHierarchySvgString(item.key, 26);
+
+        row.innerHTML = `
+          <div class="flex items-center space-x-2.5 overflow-hidden">
+            <div class="flex-shrink-0 flex items-center justify-center w-7 h-7">
+              ${svgIcon}
+            </div>
+            <div class="truncate">
+              <span class="block text-xs font-extrabold text-slate-800 leading-none">${item.label}</span>
+              <span class="block text-[10px] text-slate-400 truncate mt-0.5">${item.sub}</span>
+            </div>
+          </div>
+          <span class="text-[11px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">${item.count.toLocaleString()}</span>
+        `;
+
+        // Click to ISOLATE ONLY this level
+        row.addEventListener('click', () => {
+          if (isolatedTier === item.key) {
+            isolatedTier = null; // Toggle back to all
+          } else {
+            isolatedTier = item.key; // Isolate this level exclusively
+          }
+          updateLegendClasses();
+          renderMapData();
+        });
+
+        tContainer.appendChild(row);
+      });
+
+      // Ownership Filters
+      const oContainer = document.getElementById('ownershipLegendList');
+      oContainer.innerHTML = '';
+      OWNERSHIP_CONFIG.forEach(own => {
+        const btn = document.createElement('button');
+        btn.dataset.own = own.key;
+        btn.className = `own-legend-btn text-[10px] font-bold py-1.5 px-2 rounded-lg border text-center transition shadow-sm select-none ${own.bg}`;
+        btn.innerHTML = `${own.label}<br><span class="text-[9px] font-mono opacity-80">${own.count.toLocaleString()}</span>`;
+        btn.addEventListener('click', () => {
+          if (activeOwnerships.has(own.key)) {
+            if (activeOwnerships.size > 1) activeOwnerships.delete(own.key);
+          } else {
+            activeOwnerships.add(own.key);
+          }
+          updateLegendClasses();
+          renderMapData();
+        });
+        oContainer.appendChild(btn);
+      });
+
+      // Reset to Show All Levels
+      document.getElementById('btnShowAllTiers').addEventListener('click', () => {
+        isolatedTier = null;
+        updateLegendClasses();
+        renderMapData();
+      });
+
+      document.getElementById('btnAllOwnerships').addEventListener('click', () => {
+        OWNERSHIP_CONFIG.forEach(o => activeOwnerships.add(o.key));
+        updateLegendClasses();
+        renderMapData();
+      });
+    }
+
+    function updateLegendClasses() {
+      document.querySelectorAll('#tierLegendList > div').forEach(el => {
+        const k = el.dataset.tier;
+        if (isolatedTier === null) {
+          // All active
+          el.classList.remove('opacity-35', 'bg-slate-100', 'border-dashed', 'tier-tab-active');
+          el.classList.add('bg-white', 'border-slate-200');
+        } else if (isolatedTier === k) {
+          // This one is isolated and highlighted
+          el.classList.remove('opacity-35', 'bg-slate-100', 'border-dashed');
+          el.classList.add('tier-tab-active');
+        } else {
+          // Dimmed out
+          el.classList.add('opacity-35', 'bg-slate-100', 'border-dashed');
+          el.classList.remove('tier-tab-active', 'bg-white', 'border-slate-200');
+        }
+      });
+
+      document.querySelectorAll('#ownershipLegendList > button').forEach(el => {
+        const k = el.dataset.own;
+        if (activeOwnerships.has(k)) {
+          el.classList.remove('opacity-30', 'grayscale');
+        } else {
+          el.classList.add('opacity-30', 'grayscale');
+        }
+      });
+    }
+
+    // 5. Anti-Stacking Deterministic Sunflower Jitter
+    const coordStackMap = new Map();
+    RAW_FACILITIES.forEach(f => {
+      const key = `${f[8].toFixed(4)},${f[9].toFixed(4)}`;
+      coordStackMap.set(key, (coordStackMap.get(key) || 0) + 1);
+    });
+
+    const stackIndexMap = new Map();
+
+    function getDispersedCoords(lat, lon, tier) {
+      const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+      const stackCount = coordStackMap.get(key) || 1;
+      if (stackCount <= 1 || tier === 1) {
+        return [lat, lon];
+      }
+
+      let idx = stackIndexMap.get(key) || 0;
+      stackIndexMap.set(key, idx + 1);
+
+      // Sunflower spiral dispersal
+      const radiusDeg = 0.003 * Math.sqrt((idx + 1) / stackCount);
+      const angle = (idx * 2.39996323); // Golden ratio
+
+      let newLat = lat + radiusDeg * Math.cos(angle);
+      let newLon = lon + radiusDeg * Math.sin(angle) * 1.05;
+
+      // Border clamping strictly within Uganda
+      if (newLat < -0.9990) newLat = -0.9990; // South border (Tanzania line)
+      if (newLat > 3.790) newLat = 3.790;   // North border (South Sudan line)
+
+      return [newLat, newLon];
+    }
+
+    // 6. Marker Layer Generator
+    function renderMapData() {
+      markerCluster.clearLayers();
+      stackIndexMap.clear();
+
+      let visibleTotal = 0;
+      const markers = [];
+
+      for (let i = 0; i < RAW_FACILITIES.length; i++) {
+        const f = RAW_FACILITIES[i];
+        const [name, rawCat, rawLvl, own, auth, reg, dist, sub, lat, lon, tier, beds] = f;
+
+        const facilityCategory = categorizeFacility(f);
+
+        // Apply Hierarchy Tab Filter (Show ONLY facilities at this specific level if selected)
+        if (isolatedTier !== null && facilityCategory !== isolatedTier) {
+          continue;
+        }
+
+        // Apply Sector Ownership Filter
+        if (!activeOwnerships.has(own)) continue;
+
+        // Apply Regional Filter
+        if (selectedRegion !== 'ALL' && reg !== selectedRegion) continue;
+
+        // Apply Search Filter
+        if (searchQuery) {
+          const authFullName = AUTHORITY_NAMES[auth] || auth;
+          const ownFullName = OWNERSHIP_NAMES[own] || own;
+          const text = `${name} ${dist} ${authFullName} ${ownFullName} ${sub} ${reg} ${facilityCategory}`.toLowerCase();
+          if (!text.includes(searchQuery)) continue;
+        }
+
+        visibleTotal++;
+
+        const [dispLat, dispLon] = getDispersedCoords(lat, lon, tier);
+        const icon = createHierarchyPin(facilityCategory);
+
+        const marker = L.marker([dispLat, dispLon], { icon: icon });
+
+        const authorityFull = AUTHORITY_NAMES[auth] || auth;
+        const ownershipFull = OWNERSHIP_NAMES[own] || own;
+
+        // Popup without acronyms
+        const popupHtml = `
+          <div class="p-1.5 font-sans min-w-[220px]">
+            <div class="flex items-center space-x-1.5 mb-1">
+              <span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-900 text-yellow-400">${facilityCategory}</span>
+              <span class="text-[10px] font-bold text-slate-500">${ownershipFull}</span>
+            </div>
+            <div class="font-bold text-slate-900 text-sm leading-snug">${name}</div>
+            <div class="mt-2 pt-2 border-t border-slate-200 text-xs space-y-1 text-slate-600">
+              <div><strong class="text-slate-800">Managing Authority:</strong> <span class="text-amber-800 font-semibold">${authorityFull}</span></div>
+              <div><strong class="text-slate-800">District:</strong> ${dist} (${sub})</div>
+              <div><strong class="text-slate-800">Health Region:</strong> ${reg}</div>
+              ${beds > 0 ? `<div><strong class="text-slate-800">Reported Inpatient Beds:</strong> <span class="font-bold text-emerald-700">${beds} Beds</span></div>` : ''}
+            </div>
+          </div>
+        `;
+        marker.bindPopup(popupHtml);
+
+        marker.on('click', () => {
+          showFacilityInDrawer(f, facilityCategory);
+        });
+
+        markers.push(marker);
+      }
+
+      markerCluster.addLayers(markers);
+
+      // Update Active Counter Badge
+      document.getElementById('activeCountBadge').innerText = visibleTotal.toLocaleString();
+    }
+
+    // 7. Inspector Drawer Populator (All acronyms translated)
+    const drawer = document.getElementById('inspectorDrawer');
+    document.getElementById('btnCloseDrawer').addEventListener('click', () => drawer.classList.add('hidden'));
+
+    function showFacilityInDrawer(f, facilityCategory) {
+      const [name, rawCat, rawLvl, own, auth, reg, dist, sub, lat, lon, tier, beds] = f;
+      
+      const authorityFull = AUTHORITY_NAMES[auth] || auth;
+      const ownershipFull = OWNERSHIP_NAMES[own] || own;
+
+      document.getElementById('drawerFacilityName').innerText = name;
+      document.getElementById('drawerTierText').innerText = facilityCategory;
+      document.getElementById('drawerAuthority').innerText = authorityFull;
+      document.getElementById('drawerOwnership').innerText = ownershipFull;
+      document.getElementById('drawerBeds').innerText = beds > 0 ? `${beds} Inpatient Beds` : 'Primary Outpatient (0 Beds)';
+      document.getElementById('drawerRegion').innerText = `${reg} Region`;
+      document.getElementById('drawerDistrict').innerText = dist;
+      document.getElementById('drawerSubcounty').innerText = sub;
+      document.getElementById('drawerTier').innerText = tier === 1 ? 'Ground-Verified GPS (Gate Survey)' : 'Subcounty Administrative Centroid';
+
+      // Turn-by-turn Navigation Link directly to Google Maps
+      document.getElementById('btnGoogleMapsNav').href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+
+      drawer.classList.remove('hidden');
+    }
+
+    // 8. Event Handlers
+    document.getElementById('regionSelect').addEventListener('change', (e) => {
+      selectedRegion = e.target.value;
+      renderMapData();
+      if (selectedRegion === 'ALL') {
+        map.setView([1.3733, 32.2903], 7);
+      } else {
+        setTimeout(() => {
+          const bounds = markerCluster.getBounds();
+          if (bounds.isValid()) map.fitBounds(bounds, { padding: [60, 60] });
+        }, 150);
+      }
+    });
+
+    let debounceTimer;
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        searchQuery = e.target.value.trim().toLowerCase();
+        renderMapData();
+      }, 250);
+    });
+
+    // Initialize UI and render map
+    setupFloatingLegend();
+    updateLegendClasses();
+    renderMapData();
+  </script>
+</body>
+</html>
